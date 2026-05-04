@@ -1,0 +1,82 @@
+#!/usr/bin/env bash
+# build-scripts/write-setup.sh
+#
+# Writes setup.sh (bash/sh) and setup.csh (csh/tcsh) into the repo root.
+# Source whichever is appropriate before running any Obit tool:
+#
+#   source setup.sh      # bash / zsh
+#   source setup.csh     # tcsh / csh
+
+set -euo pipefail
+
+BASE="$(pwd)"
+SRC_OBIT="$BASE/src/Obit"
+OBIT_HOME="$SRC_OBIT/ObitSystem/Obit"
+OPT_PREFIX="$SRC_OBIT/opt"
+XMLRPC_LIB="$BASE/tmp/xmlrpc-install/lib"
+
+# ---------- setup.sh (bash / sh) -------------------------------------------
+cat > "$BASE/setup.sh" <<EOF
+#!/bin/sh
+# Setup environment to run Obit software built with pixi.
+# Source this file before running any Obit command:
+#   source setup.sh
+
+OBIT="$OBIT_HOME"
+export OBIT
+
+OBITINSTALL="$SRC_OBIT"
+export OBITINSTALL
+
+# Python module search path for ObitTalk and direct Python usage
+PYTHONPATH="$OBIT_HOME/python:$OPT_PREFIX/share/obittalk/python\${PYTHONPATH:+:\$PYTHONPATH}"
+export PYTHONPATH
+
+# Prepend Obit binaries to PATH
+PATH="$SRC_OBIT/bin:\$PATH"
+export PATH
+
+# Runtime library paths
+case "\$(uname -s)" in
+    Darwin)
+        DYLD_LIBRARY_PATH="\${CONDA_PREFIX}/lib:$XMLRPC_LIB\${DYLD_LIBRARY_PATH:+:\$DYLD_LIBRARY_PATH}"
+        export DYLD_LIBRARY_PATH
+        ;;
+    Linux)
+        LD_LIBRARY_PATH="\${CONDA_PREFIX}/lib:$XMLRPC_LIB\${LD_LIBRARY_PATH:+:\$LD_LIBRARY_PATH}"
+        export LD_LIBRARY_PATH
+        ;;
+esac
+
+echo "Obit environment configured."
+echo "  OBIT=\$OBIT"
+echo "  PYTHONPATH=\$PYTHONPATH"
+EOF
+chmod +x "$BASE/setup.sh"
+echo "[write-setup] Wrote setup.sh"
+
+# ---------- setup.csh (csh / tcsh) -----------------------------------------
+cat > "$BASE/setup.csh" <<EOF
+# Setup environment to run Obit software built with pixi.
+# Source this file before running any Obit command:
+#   source setup.csh
+
+setenv OBIT "$OBIT_HOME"
+setenv OBITINSTALL "$SRC_OBIT"
+setenv PYTHONPATH "$OBIT_HOME/python:$OPT_PREFIX/share/obittalk/python"
+setenv PATH "$SRC_OBIT/bin:\$PATH"
+
+# Runtime library paths
+if ( "\`uname -s\`" == "Darwin" ) then
+    setenv DYLD_LIBRARY_PATH "\${CONDA_PREFIX}/lib:$XMLRPC_LIB"
+else
+    setenv LD_LIBRARY_PATH "\${CONDA_PREFIX}/lib:$XMLRPC_LIB"
+endif
+
+echo "Obit environment configured."
+EOF
+echo "[write-setup] Wrote setup.csh"
+
+echo "[write-setup] Done."
+echo "  Run:  source setup.sh    (bash/zsh)"
+echo "  or:   source setup.csh   (csh/tcsh)"

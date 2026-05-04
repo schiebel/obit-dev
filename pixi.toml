@@ -1,0 +1,182 @@
+[project]
+name = "obit-dev"
+channels = ["conda-forge"]
+platforms = ["linux-64", "osx-64", "osx-arm64"]
+
+# ---------------------------------------------------------------------------
+# Core build tools
+# ---------------------------------------------------------------------------
+[dependencies]
+make    = "*"
+autoconf = "*"
+automake = "*"
+libtool  = "*"
+pkg-config = "*"
+git    = "*"
+curl   = "*"
+
+# Python (Obit's ObitTalk Python interface)
+python = ">=3.8,<3.12"     # Obit's SWIG bindings are sensitive to Python ABI
+# SWIG 3.0.12 is built from source by build-swig.sh on all platforms.
+# pcre (not pcre2) is SWIG 3.x's only mandatory build-time dependency.
+pcre   = "*"
+
+# ---------------------------------------------------------------------------
+# Third-party libraries that Obit's ./configure probes for
+# (replaces building them from the bundled `other/` tree)
+# ---------------------------------------------------------------------------
+cfitsio   = ">=4.0"          # FITS I/O  (--with-cfitsio)
+fftw      = ">=3.3"          # FFTs      (--with-fftw3)
+gsl       = ">=2.6"          # GSL       (--with-gsl)
+glib      = ">=2.70"         # GLib      (--with-glib-prefix)
+zlib      = "*"              # zlib      (--with-zlib)
+libcurl   = "*"              # cURL      (--with-curl)
+boost-cpp = ">=1.70"         # Boost     (--with-boost) needed for WVR
+readline  = "*"              # needed by ObitTalk Python REPL
+ncurses   = "*"
+plplot    = "*"              # optional plotting library used by ObitView
+
+# X11 libraries needed to build OpenMotif from source on all platforms.
+# These are the same deps that the Homebrew openmotif formula declares.
+# All use the xorg- prefix as packaged on conda-forge.
+xorg-libx11   = "*"
+xorg-libxt    = "*"
+xorg-libxext  = "*"
+xorg-libxmu   = "*"
+xorg-libxft   = "*"
+xorg-libxp    = "*"
+xorg-libice   = "*"
+xorg-libsm    = "*"
+xorg-xbitmaps = "*"
+fontconfig    = "*"
+freetype      = ">=2.0"
+libjpeg-turbo = "*"
+libpng        = "*"
+
+# xmlrpc-c is not on conda-forge; we build the bundled copy.
+# openmotif is not on conda-forge for macOS; we build it from source on all
+# platforms for consistency (see build-scripts/build-motif.sh).
+
+# ---------------------------------------------------------------------------
+# Platform-specific compilers / linker helpers
+# ---------------------------------------------------------------------------
+[target.linux-64.dependencies]
+gcc_linux-64      = "*"
+gxx_linux-64      = "*"
+gfortran_linux-64 = "*"
+libgomp           = "*"   # OpenMP
+
+[target.osx-64.dependencies]
+clang           = "*"
+clangxx         = "*"
+gfortran_osx-64 = "13.*"
+libgfortran5    = "13.*"
+llvm-openmp     = "*"
+
+[target.osx-arm64.dependencies]
+clang       = "*"
+clangxx     = "*"
+gfortran    = "*"
+llvm-openmp = "*"
+
+# ---------------------------------------------------------------------------
+# Optional dev extras
+# ---------------------------------------------------------------------------
+[feature.dev.dependencies]
+ipython    = "*"
+matplotlib = "*"
+numpy      = "*"
+
+[feature.linux]
+platforms = ["linux-64"]
+
+[feature.osx-intel]
+platforms = ["osx-64"]
+
+[feature.osx-arm]
+platforms = ["osx-arm64"]
+
+[environments]
+default   = {features = ["dev"],                     solve-group = "default"}
+linux-dev = {features = ["linux", "dev"],            solve-group = "linux"}
+osx-intel = {features = ["osx-intel", "dev"],        solve-group = "osx64"}
+osx-arm   = {features = ["osx-arm", "dev"],          solve-group = "arm"}
+
+# ---------------------------------------------------------------------------
+# Tasks
+# ---------------------------------------------------------------------------
+
+# -- Build SWIG 3.0.12 from source (all platforms) ---------------------------
+[tasks.build-swig]
+cmd = "bash build-scripts/build-swig.sh"
+depends-on = ["clone-repo"]
+description = "Download and build SWIG 3.0.12 from source against conda pcre"
+
+# -- Clone the Obit repository -----------------------------------------------
+[tasks.clone-repo]
+cmd = "bash build-scripts/clone-repo.sh"
+description = "Clone Obit from GitHub"
+
+# -- Build bundled xmlrpc-c (not on conda-forge) -----------------------------
+[tasks.build-xmlrpc]
+cmd = "bash build-scripts/build-xmlrpc.sh"
+depends-on = ["clone-repo"]
+description = "Build bundled xmlrpc-c against conda curl"
+
+# -- Build OpenMotif from source (not on conda-forge for macOS) --------------
+[tasks.build-motif]
+cmd = "bash build-scripts/build-motif.sh"
+depends-on = ["clone-repo"]
+description = "Download and build OpenMotif 2.3.8 against conda X11 libs"
+
+# -- Configure + build each Obit component -----------------------------------
+[tasks.build-obit]
+cmd = "bash build-scripts/build-obit.sh"
+depends-on = ["clone-repo", "build-swig", "build-xmlrpc"]
+description = "Build core Obit C library and tasks"
+
+[tasks.build-obitview]
+cmd = "bash build-scripts/build-obitview.sh"
+depends-on = ["build-obit", "build-motif"]
+description = "Build ObitView image display"
+
+[tasks.build-obittalk]
+cmd = "bash build-scripts/build-obittalk.sh"
+depends-on = ["build-obit"]
+description = "Build ObitTalk Python interface"
+
+# -- Convenience targets -----------------------------------------------------
+[tasks.build-all]
+depends-on = ["build-obitview", "build-obittalk"]
+description = "Full build: clone + all components"
+
+[tasks.build-core]
+depends-on = ["clone-repo", "build-swig", "build-xmlrpc", "build-obit"]
+description = "Minimal build: Obit C core only (no GUI, no Python)"
+
+[tasks.clean]
+cmd = """
+    rm -rf src/Obit/ObitSystem/Obit/build \
+           src/Obit/ObitSystem/ObitView/build \
+           src/Obit/ObitSystem/ObitTalk/build \
+           tmp/xmlrpc-install \
+           tmp/xmlrpc-build \
+           tmp/motif-build \
+           tmp/motif-install \
+           tmp/swig-build \
+           tmp/swig-install
+"""
+description = "Remove build artefacts (keeps downloaded tarballs)"
+
+[tasks.clean-all]
+cmd = "rm -rf src/ tmp/"
+description = "Remove everything including cloned source"
+
+# -- Write runtime environment setup scripts ----------------------------------
+[tasks.write-setup]
+cmd = "bash build-scripts/write-setup.sh"
+description = "Write setup.sh / setup.csh for runtime env"
+
+[tasks.test]
+cmd = "python -m pytest tests/"
+description = "Run tests"
