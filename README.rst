@@ -2,7 +2,7 @@ Obit Pixi Build
 ===============
 
 A `pixi <https://pixi.prefix.dev/latest/>`_ build environment for
-`Obit astronomy software <https://github.com/bill-cotton/Obit>`_ (Bill Cotton, NRAO).
+`Obit Astronomy Software <https://github.com/bill-cotton/Obit>`_ (Bill Cotton, NRAO).
 
 Supports **Linux x86-64**, **macOS Intel (x86-64)**, and **macOS Apple Silicon (arm64)**.
 
