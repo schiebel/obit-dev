@@ -129,6 +129,10 @@ To inspect non-conda components built from source::
     # Obit revision
     cat src/Obit/ObitSystem/Obit/src/ObitVersion.c
 
+To test loading of Obit::
+
+    pixi run bash -c "PYTHONPATH=src/Obit/ObitSystem/Obit/python python -c \"import _Obit; print('hello')\""
+
 ----
 
 What happens under the hood
