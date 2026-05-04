@@ -50,7 +50,11 @@ Quick start — full build
     source setup.csh       # csh / tcsh
 
 ``build-all`` runs the complete dependency chain automatically.
-A first run on a clean machine takes 10–30 minutes depending on CPU count.
+A first run on a clean machine takes 10–30 minutes depending on CPU count. If the build
+appears to complete successfully, it can be tested using pixi's python with::
+
+  pixi run bash -c "PYTHONPATH=src/Obit/ObitSystem/Obit/python python -c \"import _Obit; print('hello')\""
+
 
 ----
 
@@ -128,10 +132,6 @@ To inspect non-conda components built from source::
 
     # Obit revision
     cat src/Obit/ObitSystem/Obit/src/ObitVersion.c
-
-To test loading of Obit::
-
-    pixi run bash -c "PYTHONPATH=src/Obit/ObitSystem/Obit/python python -c \"import _Obit; print('hello')\""
 
 ----
 
