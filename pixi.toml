@@ -1,4 +1,4 @@
-[project]
+[workspace]
 name = "obit-dev"
 channels = ["conda-forge"]
 platforms = ["linux-64", "osx-64", "osx-arm64"]
