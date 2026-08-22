@@ -35,12 +35,13 @@ echo "[build-obittalk] Configuring ObitTalk"
     PKG_CONFIG_PATH="$PKG_CONFIG_PATH"
 
 echo "[build-obittalk] Building ObitTalk (NPROC=$NPROC)"
-make -j"$NPROC" clean all install
-
-cd python
-make all
-cd ..
-make install
+# ObitTalk's bin/Makefile generates ObitTalk/ObitTalk3/ObitTalkServer via
+# parallel sed+mv sequences that race against each other. Use -j1 for safety.
+# Skip the doc target — it requires LaTeX which is not a pixi dependency.
+make -j1 clean
+make -j1 -C bin all install
+make -j1 -C python all install
+make -j1 -C test all
 
 echo "[build-obittalk] Done."
 echo "  Python modules are in: $OPT_PREFIX/share/obittalk/python"
