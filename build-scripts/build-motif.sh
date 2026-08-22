@@ -175,11 +175,15 @@ echo "  CONDA_PREFIX: $CONDA_PREFIX"
 
 # ---- build ------------------------------------------------------------------
 echo "[build-motif] Building OpenMotif (NPROC=$NPROC)"
-make -j"$NPROC"
+# Build lib and clients only — the tools/wml directory builds executables
+# with the cc-wrapper which confuses libtool on Linux (missing main()).
+make -j"$NPROC" -C lib
+make -j"$NPROC" -C clients
 
 # ---- install ----------------------------------------------------------------
 echo "[build-motif] Installing OpenMotif → $INSTALL_PREFIX"
-make install
+make -C lib install
+make -C clients install
 
 echo "[build-motif] Done."
 echo "  Headers: $INSTALL_PREFIX/include"
