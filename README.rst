@@ -320,9 +320,11 @@ Expected output::
 
     _Obit OK
 
-If you see ``ImportError: symbol not found``, re-run ``pixi run write-setup``
-and make sure you have sourced ``setup.sh`` / ``setup.csh`` in the *same*
-shell before running Python.
+``setup.sh`` adds the pixi-managed Python to your ``PATH``, which is the
+interpreter ``_Obit.so`` was compiled against. If you see
+``command not found`` for ``python``, make sure you have sourced
+``setup.sh`` first. If you see ``ImportError: symbol not found``, re-run
+``pixi run write-setup`` and source again.
 
 **2. Verify the Obit Python interface**
 
@@ -359,6 +361,16 @@ environment loaded. Type ``exit()`` to quit.
 On macOS this requires XQuartz to be running. On a remote Linux system
 you need either a local X11 display or a VNC/remote desktop session.
 ObitView should open a blank image display window.
+
+You will likely see harmless warnings like::
+
+    Warning:
+        Name: Options
+        Class: XmCascadeButton
+        Illegal mnemonic character;  Could not convert X KEYSYM to a keycode
+
+These are a known cosmetic issue with OpenMotif 2.3.x and modern X11
+keyboard configurations. The application functions correctly despite them.
 
 ----
 
