@@ -82,6 +82,13 @@ Quick start — full build
     # — or —
     source setup.csh       # csh / tcsh
 
+.. note::
+
+   tcsh/csh users: after sourcing ``setup.csh``, run Python and Obit tools
+   directly from the shell. The ``pixi run bash -c "..."`` pattern shown in
+   some examples uses bash quoting that is incompatible with tcsh. Use
+   ``source setup.csh`` instead of ``pixi run`` for day-to-day usage.
+
 ``build-all`` runs the complete dependency chain automatically.
 A first run on a clean machine takes 10–30 minutes depending on CPU count.
 
@@ -296,8 +303,66 @@ AIPS interoperability can be added later by setting the ``DA00`` and
 
 ----
 
-Cleaning up
------------
+Testing the build
+-----------------
+
+After a successful ``build-all`` and ``write-setup``, run these quick
+checks to verify the installation.
+
+**1. Verify the Python bindings load**
+
+::
+
+    source setup.sh     # or setup.csh for tcsh/csh
+    python -c "import _Obit; print('_Obit OK')"
+
+Expected output::
+
+    _Obit OK
+
+If you see ``ImportError: symbol not found``, re-run ``pixi run write-setup``
+and make sure you have sourced ``setup.sh`` / ``setup.csh`` in the *same*
+shell before running Python.
+
+**2. Verify the Obit Python interface**
+
+::
+
+    python -c "
+    import OSystem, OErr
+    err = OErr.OErr()
+    print('OErr OK')
+    OSystem.OSystem('test', 1, 1, 0, [''], 0, [''], False, False, err)
+    print('OSystem OK')
+    "
+
+Expected output::
+
+    OErr OK
+    OSystem OK
+
+**3. Verify ObitTalk starts**
+
+::
+
+    ObitTalk
+
+This should drop you into an interactive Python session with the ObitTalk
+environment loaded. Type ``exit()`` to quit.
+
+**4. Verify ObitView launches** *(requires a running X11 display)*
+
+::
+
+    ObitView
+
+On macOS this requires XQuartz to be running. On a remote Linux system
+you need either a local X11 display or a VNC/remote desktop session.
+ObitView should open a blank image display window.
+
+----
+
+
 
 ::
 
