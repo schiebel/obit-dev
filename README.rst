@@ -1,15 +1,48 @@
 Obit Pixi Build
 ===============
 
-A `pixi <https://pixi.prefix.dev/latest/>`_ build environment for
-`Obit Astronomy Software <https://github.com/bill-cotton/Obit>`_ (Bill Cotton, NRAO).
+A `pixi <https://prefix.dev/docs/pixi/>`_ build environment for
+`Obit astronomy software <https://github.com/bill-cotton/Obit>`_ (Bill Cotton, NRAO).
 
 Supports **Linux x86-64**, **macOS Intel (x86-64)**, and **macOS Apple Silicon (arm64)**.
 
 ----
 
-Setting up Pixi
----------------
+Prerequisites
+-------------
+
+On a clean macOS system, you need three things before running any build tasks:
+
+**1. Xcode Command Line Tools**
+
+Required by the conda-forge compiler toolchain::
+
+    xcode-select --install
+
+**2. XQuartz** *(macOS only)*
+
+Required for the OpenMotif build. Download and install from
+https://www.xquartz.org/ then **log out and back in** before proceeding.
+Without this step the OpenMotif build will fail with missing X11 headers.
+
+**3. Pixi**
+
+::
+
+    curl -fsSL https://pixi.sh/install.sh | bash
+
+Restart your shell afterwards so ``pixi`` is on your ``PATH``.
+
+Everything else — gcc, Python, CFITSIO, FFTW, GSL, GLib, curl, zlib,
+PLplot, X11 runtime libraries, SWIG, xmlrpc-c, and OpenMotif — is either
+pulled automatically from conda-forge by ``pixi install`` or built from
+source by the build scripts.
+
+You do **not** need Homebrew, MacPorts, full Xcode.app, AIPS, or LaTeX.
+
+----
+
+
 
 Pixi is a fast, cross-platform package manager built on top of conda-forge.
 If you do not already have it installed, run::
@@ -50,11 +83,7 @@ Quick start — full build
     source setup.csh       # csh / tcsh
 
 ``build-all`` runs the complete dependency chain automatically.
-A first run on a clean machine takes 10–30 minutes depending on CPU count. If the build
-appears to complete successfully, it can be tested using pixi's python with::
-
-  pixi run bash -c "PYTHONPATH=src/Obit/ObitSystem/Obit/python python -c \"import _Obit; print('hello')\""
-
+A first run on a clean machine takes 10–30 minutes depending on CPU count.
 
 ----
 
