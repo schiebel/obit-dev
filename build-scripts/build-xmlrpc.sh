@@ -49,6 +49,28 @@ else
     echo "[build-xmlrpc] WARNING: automake share dir not found; config.sub may be stale"
 fi
 
+# ---- patch 2: bool.h C23 keyword conflict -----------------------------------
+# xmlrpc-c ships its own bool.h that defines an enum with 'false' and 'true'
+# as members.  GCC 15+ defaults to -std=c23 where false/true are keywords,
+# so this typedef causes "cannot use keyword 'false' as enumeration constant".
+# The fix: guard the entire typedef with #ifndef __bool_true_false_are_defined
+# (the stdbool.h sentinel), so on C99/C11/C23 the system stdbool provides the
+# type and xmlrpc-c's definition is skipped.
+# Multiple copies exist (lib/util/include/bool.h and include/bool.h).
+echo "[build-xmlrpc] Patching bool.h for C23 / GCC 15 compatibility"
+find . -name "bool.h" 2>/dev/null | while read -r boolh; do
+    if grep -q "false = 0" "$boolh" 2>/dev/null; then
+        # Wrap the whole content with a stdbool sentinel guard
+        cat > "$boolh" << 'BOOLH_EOF'
+/* bool.h — patched by obit-dev build to avoid C23 keyword conflict */
+#ifndef __bool_true_false_are_defined
+#  include <stdbool.h>
+#endif
+BOOLH_EOF
+        echo "[build-xmlrpc]   Patched: $boolh"
+    fi
+done
+
 # ---- patch 3: curl/types.h --------------------------------------------------
 CURL_TRANSPORT="lib/curl_transport/xmlrpc_curl_transport.c"
 if [ -f "$CURL_TRANSPORT" ] && grep -q "curl/types.h" "$CURL_TRANSPORT"; then

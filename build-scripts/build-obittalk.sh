@@ -15,6 +15,44 @@ fi
 
 cd "$COMP_DIR"
 
+# ---------------------------------------------------------------------------
+# Python 2→3 compatibility: ObitTalk.py uses `input` as both a variable name
+# and the built-in function on the same line, which fails in Python 3.
+# e.g.  input = input("Please enter your AIPS user ID number: ")
+# After that assignment `input` is a str, so any subsequent input() call
+# raises TypeError: 'str' object is not callable.
+# Fix: rename the local variable to `user_input` throughout ObitTalk.py and
+# ObitTalk3.py (they are generated from the same template).
+# ---------------------------------------------------------------------------
+echo "[build-obittalk] Patching ObitTalk.py / ObitTalk3.py: rename 'input' variable → 'user_input'"
+for pyfile in \
+    "$COMP_DIR/bin/ObitTalk.py" \
+    "$COMP_DIR/bin/ObitTalk3.py"; do
+    if [ -f "$pyfile" ]; then
+        # Replace  `input = input(`  →  `user_input = input(`
+        # Replace subsequent bare  `input`  used as the received string
+        # (but NOT calls like  input(  which are the built-in).
+        # Strategy:
+        #   1. Turn  `input = input(`  into  `user_input = input(`
+        #   2. Where `input` appears as a bare value (not followed by `(`)
+        #      replace it with `user_input`.  We use a two-pass approach.
+        # Pass 1: rename the assignment  `input = input(`  →  `user_input = input(`
+        sed -i.bak \
+            -e 's/\binput = input(/user_input = input(/g' \
+            "$pyfile"
+        # Pass 2: replace bare `input` used as a *value* (not the built-in call).
+        # We must NOT touch occurrences followed by `(` (those are the built-in).
+        # POSIX sed has no negative lookahead; instead, protect `input(` with a
+        # placeholder that cannot appear in real Python, fix bare `input`, restore.
+        sed -i \
+            -e 's/\binput(/__INPUTBUILTIN__(/g' \
+            -e 's/\binput\b/user_input/g' \
+            -e 's/__INPUTBUILTIN__/input/g' \
+            "$pyfile"
+        echo "[build-obittalk]   Patched: $pyfile"
+    fi
+done
+
 # Clean any stale config artefacts
 rm -f config.status config.log
 
