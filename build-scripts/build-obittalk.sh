@@ -81,6 +81,48 @@ make -j1 -C bin all install
 make -j1 -C python all install
 make -j1 -C test all
 
+# ---------------------------------------------------------------------------
+# Fix the installed ObitTalk / ObitTalk3 / ObitTalkServer shell wrappers.
+#
+# The configure step substitutes @PYTHON@ with the python interpreter path,
+# but the substitution often fails (leaving the literal @PYTHON@), causing
+# the wrapper to fall through to:
+#   exec `/usr/bin/env python $@`
+# which uses backtick substitution — it runs python, captures its output,
+# and tries to exec that output as a command.  Always broken.
+#
+# Fix: replace the broken exec line and the dead @PYTHON@ branch with a
+# direct exec of the pixi-managed python that is guaranteed to be on PATH
+# after setup.sh is sourced.
+# ---------------------------------------------------------------------------
+echo "[build-obittalk] Fixing @PYTHON@ placeholder in installed wrappers"
+PYTHON_BIN="$(command -v python)"
+for wrapper in \
+    "$SRC_OBIT/bin/ObitTalk" \
+    "$SRC_OBIT/bin/ObitTalk3" \
+    "$SRC_OBIT/bin/ObitTalkServer"; do
+    if [ -f "$wrapper" ]; then
+        # The autoconf @PYTHON@ substitution is unreliable; the wrapper falls
+        # through to  exec `/usr/bin/env python $@`  (backtick — broken).
+        # Replace the entire trailing if/else/fi block with a direct exec.
+        cp "$wrapper" "$wrapper.bak"
+        python - "$wrapper" "$PYTHON_BIN" << 'PYFIX'
+import sys, re
+path, pybin = sys.argv[1], sys.argv[2]
+text = open(path).read()
+# Replace the block from "if test -f @PYTHON@" to the end of the file
+text = re.sub(
+    r'# Use distributed.*',
+    f'# Use pixi-managed python (fixed by obit-dev build)\nexec {pybin} "$@"',
+    text,
+    flags=re.DOTALL
+)
+open(path, 'w').write(text)
+PYFIX
+        echo "[build-obittalk]   Fixed wrapper: $wrapper"
+    fi
+done
+
 echo "[build-obittalk] Done."
 echo "  Python modules are in: $OPT_PREFIX/share/obittalk/python"
 echo "  Source setup.sh (written by write-setup task) before running ObitTalk."
